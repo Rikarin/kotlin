@@ -1,6 +1,7 @@
 package net.rikarin.dependencyInjeciton
 
 import org.junit.jupiter.api.Test
+import kotlin.reflect.typeOf
 import kotlin.test.assertEquals
 
 class ServiceProviderTest {
@@ -8,7 +9,7 @@ class ServiceProviderTest {
     fun testServiceProvider() {
         val serviceCollection = DefaultServiceCollection()
         serviceCollection.singleton<FooBar>(FooBar("foo", "bar"))
-        serviceCollection.scoped(TestInterface::class, TestClass::class)
+        serviceCollection.scoped<TestInterface, TestClass>()
 
         val provider = serviceCollection.buildServiceProvider()
 
@@ -36,7 +37,24 @@ class ServiceProviderTest {
             assertEquals("bar", instance.calculateBar())
         }
     }
+
+    @Test
+    fun genericTest() {
+        val serviceCollection = DefaultServiceCollection()
+        serviceCollection.singleton<GenericClass<String>>(GenericClass("foo"))
+        serviceCollection.singleton<GenericClass<Int>>(GenericClass(42))
+
+        val provider = serviceCollection.buildServiceProvider()
+
+        val str = provider.getRequiredService<GenericClass<String>>()
+        val num = provider.getRequiredService<GenericClass<Int>>()
+
+        assertEquals("foo", str.value)
+        assertEquals(42, num.value)
+    }
 }
+
+class GenericClass<T>(val value: T)
 
 
 data class FooBar(val foo: String, val bar: String)
@@ -44,7 +62,7 @@ data class FooBar(val foo: String, val bar: String)
 private interface TestInterface {
     var name: String
     fun calculateFoo(): String
-    fun calculateBar(): String
+    fun calculateBar(): String?
 }
 
 class TestClass(private val fooBar: FooBar) : TestInterface {
@@ -53,5 +71,5 @@ class TestClass(private val fooBar: FooBar) : TestInterface {
 
     override var name: String = ""
     override fun calculateFoo() = fooBar.foo
-    override fun calculateBar() = serviceProvider?.getRequiredService<FooBar>()?.bar ?: "not initialized"
+    override fun calculateBar() = serviceProvider?.getRequiredService<FooBar>()?.bar
 }

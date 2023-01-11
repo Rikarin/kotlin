@@ -2,12 +2,14 @@ package net.rikarin.dependencyInjeciton
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
+import kotlin.reflect.KType
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.typeOf
 
 internal class DefaultServiceProvider(
-    private val implementations: Map<KClass<*>, List<ServiceDescriptor>>,
+    private val implementations: Map<KType, List<ServiceDescriptor>>,
     private val singletons: MutableMap<ServiceDescriptor, Any>,
     serviceScope: ServiceScope?
 ) : ServiceProvider {
@@ -21,8 +23,8 @@ internal class DefaultServiceProvider(
         }
     }
 
-    override fun getService(type: KClass<*>): Any? {
-        if (type == ServiceProvider::class) {
+    override fun getService(type: KType): Any? {
+        if (type.classifier == ServiceProvider::class) {
             return this
         }
 
@@ -37,7 +39,7 @@ internal class DefaultServiceProvider(
         return getServices(type).first()
     }
 
-    override fun getServices(type: KClass<*>): Collection<Any> {
+    override fun getServices(type: KType): Collection<Any> {
         if (implementations[type] == null) {
             return emptyList()
         }
@@ -71,12 +73,12 @@ internal class DefaultServiceProvider(
             var newInstance: Any
             if (desc.implementationType != null) {
                 // TODO: this will use only primary constructor and not any other defined in the body of a class
-                val ctr = desc.implementationType.primaryConstructor
+                val ctr = (desc.implementationType.classifier as KClass<*>).primaryConstructor
                 val params = ctr?.parameters!!
 
                 val args = mutableListOf<Any>()
                 for (p in params) {
-                    args.add(getRequiredService(p.type.classifier as KClass<*>))
+                    args.add(getRequiredService(p.type))
                 }
 
                 newInstance = ctr.call(*args.toTypedArray())
@@ -84,7 +86,7 @@ internal class DefaultServiceProvider(
                 val props = newInstance::class.memberProperties.filter { it.hasAnnotation<Inject>() }
                 for (prop in props) {
                     if (prop is KMutableProperty<*>) {
-                        prop.setter.call(newInstance, getService(prop.returnType.classifier as KClass<*>))
+                        prop.setter.call(newInstance, getService(prop.returnType))
                     }
                 }
             } else if (desc.implementationFactory != null) {
@@ -105,7 +107,7 @@ internal class DefaultServiceProvider(
         return ret.toList()
     }
 
-    override fun getRequiredService(type: KClass<*>): Any {
+    override fun getRequiredService(type: KType): Any {
         return getService(type) ?: throw Exception("service does not have any valid implementation for $type")
     }
 
