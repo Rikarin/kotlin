@@ -19,11 +19,12 @@ class ConsoleLoggerProvider : LoggerProvider {
             return true
         }
 
-        override fun <TState> beginScope(state: TState): AutoCloseable {
+        override fun <TState> scoped(state: TState, delegate: () -> Unit) {
             val scope = _scope
             _scope = state
 
-            return AutoCloseable { _scope = scope }
+            delegate()
+            _scope = scope
         }
     }
 }

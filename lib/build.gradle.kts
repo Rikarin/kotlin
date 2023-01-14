@@ -27,8 +27,7 @@ dependencies {
     implementation("de.mkammerer.snowflake-id:snowflake-id:0.0.1")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.0")
     implementation("com.charleskorn.kaml:kaml:0.49.0")
-//    implementation("io.github.microutils:kotlin-logging-jvm:3.0.4")
-//    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 }
 
 testing {

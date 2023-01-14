@@ -1,14 +1,12 @@
 package net.rikarin.http
 
-import net.rikarin.http.internal.DefaultConnectionInfo
+import net.rikarin.http.features.*
+import net.rikarin.http.internal.DefaultHttpConnectionFeature
 import net.rikarin.http.internal.DefaultHttpContext
-import net.rikarin.http.internal.DefaultHttpRequest
-import net.rikarin.http.internal.DefaultHttpResponse
+import net.rikarin.http.internal.DefaultItemsFeature
 import net.rikarin.primitives.StringValues
-import java.io.BufferedReader
 import java.io.DataInputStream
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.net.ServerSocket
 import java.net.Socket
 
@@ -49,21 +47,21 @@ class HttpListener {
     }
 
     private fun getContextForSocket(client: Socket): HttpContext? {
-        val connection = DefaultConnectionInfo(
+        val collection = DefaultFeatureCollection()
+
+        collection.set<ItemsFeature>(DefaultItemsFeature())
+        collection.set<HttpConnectionFeature>(DefaultHttpConnectionFeature(
+            "asdf",
             client.inetAddress.asIPAddress(),
-            client.port,
             client.localAddress.asIPAddress(),
+            client.port,
             client.localPort
-        )
+        ))
 
-        val request = DefaultHttpRequest()
-        val response = DefaultHttpResponse()
-        val context = DefaultHttpContext(client, request, response, connection)
 
-        request.body = client.inputStream
-        request.httpContext = context
-        response.httpContext = context
 
+        val context = DefaultHttpContext(collection)
+//        request.body = client.inputStream
 //        val scanner = Scanner(client.inputStream)
 //        while (scanner.hasNextLine()) {
 //            println(scanner.nextLine())
@@ -78,12 +76,14 @@ class HttpListener {
 
         // TODO: parse headers and provide body stream
 
-        println("available ${request.body.available()}")
+        println("context stuff ${context.connection.localPort} ${client.localPort}")
 
-        val reader = BufferedReader(InputStreamReader(request.body))
-        val messageline = reader.readLine()
+//        println("available ${request.body.available()}")
 
-        println("message $messageline")
+//        val reader = BufferedReader(InputStreamReader(request.body))
+//        val messageline = reader.readLine()
+//
+//        println("message $messageline")
 
         return context
     }

@@ -3,7 +3,7 @@ package net.rikarin.logging
 interface Logger {
     fun <TState> log(logLevel: LogLevel, state: TState, exception: Throwable?, formatter: (TState, Throwable?) -> String)
     fun isEnabled(logLevel: LogLevel): Boolean
-    fun <TState> beginScope(state: TState): AutoCloseable
+    fun <TState> scoped(state: TState, delegate: () -> Unit)
 }
 
 // ----------------------------------------------------- TRACE ------------------------------------------------ //
@@ -58,8 +58,7 @@ fun Logger.log(logLevel: LogLevel, exception: Throwable?, message: () -> Any) {
     }
 }
 
-//fun Logger.beginScope(message: () -> Any) = beginScope(message())
-fun Logger.beginScope(message: String, vararg args: Any) = beginScope(FormattedLogValues(message, args))
+fun Logger.scoped(message: String, vararg args: Any, delegate: () -> Unit) = scoped(FormattedLogValues(message, args), delegate)
 
 
 private class FormattedLogValues(private val format: String?, private vararg val args: Any) {

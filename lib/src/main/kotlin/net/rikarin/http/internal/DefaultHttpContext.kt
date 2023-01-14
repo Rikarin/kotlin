@@ -3,19 +3,26 @@ package net.rikarin.http.internal
 import net.rikarin.dependencyInjeciton.ServiceProvider
 import net.rikarin.http.ConnectionInfo
 import net.rikarin.http.HttpContext
-import net.rikarin.http.HttpRequest
-import net.rikarin.http.HttpResponse
-import java.net.Socket
+import net.rikarin.http.features.*
 
-internal class DefaultHttpContext(
-    private val socket: Socket,
-    override val request: HttpRequest,
-    override val response: HttpResponse,
-    override val connection: ConnectionInfo
-) : HttpContext() {
-    override var items: Map<Any, Any?>
-        get() = TODO("Not yet implemented")
-        set(value) {}
+internal class DefaultHttpContext(override val features: FeatureCollection) : HttpContext() {
+    val _features: FeatureReferences<FeatureInterfaces>
+
+    constructor() : this(DefaultFeatureCollection()) {
+        features.set<HttpRequestFeature>(DefaultHttpRequestFeature())
+        features.set<HttpResponseFeature>(DefaultHttpResponseFeature())
+    }
+
+    init {
+        _features = FeatureReferences(features, ::FeatureInterfaces)
+    }
+
+    override val request = DefaultHttpRequest(this)
+    override val response = DefaultHttpResponse(this)
+    override val connection: ConnectionInfo by lazy { DefaultConnectionInfo(features) }
+    override var items: MutableMap<Any, Any?>
+        get() = itemsFeature.items
+        set(value) { itemsFeature.items = value }
     override var requestServices: ServiceProvider
         get() = TODO("Not yet implemented")
         set(value) {}
@@ -23,12 +30,17 @@ internal class DefaultHttpContext(
         get() = TODO("Not yet implemented")
         set(value) {}
 
-    override fun abort() = socket.close()
+    override fun abort() {
+        TODO()
+    }
 
+//    override fun abort() = socket.close()
+
+    private var itemsFeature by _features.byProperty("items") { DefaultItemsFeature() }
 
 
     class FeatureInterfaces {
-//        public IItemsFeature? Items;
+        var items: ItemsFeature? = null
 //        public IServiceProvidersFeature? ServiceProviders;
 //        public IHttpAuthenticationFeature? Authentication;
 //        public IHttpRequestLifetimeFeature? Lifetime;

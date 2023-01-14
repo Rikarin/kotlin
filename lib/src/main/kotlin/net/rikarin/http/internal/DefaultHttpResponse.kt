@@ -3,7 +3,7 @@ package net.rikarin.http.internal
 import net.rikarin.http.*
 import java.io.OutputStream
 
-internal class DefaultHttpResponse : HttpResponse() {
+internal class DefaultHttpResponse(context: DefaultHttpContext) : HttpResponse() {
     private var _hasStarted = false
 
     override lateinit var httpContext: HttpContext

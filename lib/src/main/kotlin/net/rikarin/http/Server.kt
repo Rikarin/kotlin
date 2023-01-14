@@ -1,5 +1,7 @@
 package net.rikarin.http
 
+import net.rikarin.http.features.FeatureCollection
+
 interface Server {
     val features: FeatureCollection
 

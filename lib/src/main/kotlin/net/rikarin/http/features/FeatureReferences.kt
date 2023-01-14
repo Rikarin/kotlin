@@ -26,17 +26,14 @@ class FeatureReferences<TCache : Any>(collection: FeatureCollection, internal va
             override fun getValue(thisRef: TInstance, property: KProperty<*>): TProperty {
                 val prop = self.cache::class.memberProperties.find { it.name == propertyName }
                 val revision = collection.revision ?: throw Exception("disposed")
-                var flush = false
 
                 if (revision != self.revision) {
                     if (prop is KMutableProperty<*>) {
                         prop.setter.call(self.cache, null)
                     }
-
-                    flush = true
                 }
 
-                return (prop?.getter?.call(self.cache) ?: updateCached(revision, flush)) as TProperty
+                return (prop?.getter?.call(self.cache) ?: updateCached(revision)) as TProperty
             }
 
             override fun setValue(thisRef: TInstance, property: KProperty<*>, value: TProperty) {
@@ -46,20 +43,19 @@ class FeatureReferences<TCache : Any>(collection: FeatureCollection, internal va
                 }
             }
 
-            private fun updateCached(revision: Int, flush: Boolean): TProperty {
-                if (flush) {
+            private fun updateCached(revision: Int): TProperty {
+                if (revision != self.revision) {
                     self.cache = self.factory()
                 }
 
                 var cached = self.collection.get<TProperty?>()
-
                 if (cached == null) {
                     cached = factory()
                     self.collection.set(cached)
                     self.revision = self.collection.revision
-                } else if (flush) {
-                    self.revision = revision
                 }
+
+                self.revision = revision
 
                 val prop = self.cache::class.memberProperties.find { it.name == propertyName }
                 if (prop is KMutableProperty<*>) {

@@ -5,7 +5,7 @@ import net.rikarin.http.HttpContext
 import net.rikarin.http.HttpRequest
 import java.io.InputStream
 
-internal class DefaultHttpRequest : HttpRequest() {
+internal class DefaultHttpRequest(context: DefaultHttpContext) : HttpRequest() {
     override lateinit var httpContext: HttpContext
 
     override var method: String
