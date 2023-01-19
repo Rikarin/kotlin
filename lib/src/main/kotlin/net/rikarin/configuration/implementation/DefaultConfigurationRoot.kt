@@ -1,9 +1,8 @@
 package net.rikarin.configuration.implementation
 
-import net.rikarin.configuration.ChangeToken
+import net.rikarin.primitives.ChangeToken
 import net.rikarin.configuration.ConfigurationProvider
 import net.rikarin.configuration.ConfigurationRoot
-import net.rikarin.configuration.ConfigurationSection
 import net.rikarin.core.exchange
 import java.util.concurrent.atomic.AtomicReference
 

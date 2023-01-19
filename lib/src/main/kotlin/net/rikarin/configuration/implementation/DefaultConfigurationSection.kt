@@ -1,6 +1,6 @@
 package net.rikarin.configuration.implementation
 
-import net.rikarin.configuration.ChangeToken
+import net.rikarin.primitives.ChangeToken
 import net.rikarin.configuration.ConfigurationPath
 import net.rikarin.configuration.ConfigurationRoot
 import net.rikarin.configuration.ConfigurationSection

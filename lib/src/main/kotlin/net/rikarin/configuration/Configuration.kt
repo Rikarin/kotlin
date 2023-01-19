@@ -1,5 +1,7 @@
 package net.rikarin.configuration
 
+import net.rikarin.primitives.ChangeToken
+
 interface Configuration {
     val reloadToken: ChangeToken
     val children: Iterable<ConfigurationSection>

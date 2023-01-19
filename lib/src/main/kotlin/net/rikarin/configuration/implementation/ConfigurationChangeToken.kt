@@ -1,6 +1,6 @@
 package net.rikarin.configuration.implementation
 
-import net.rikarin.configuration.ChangeToken
+import net.rikarin.primitives.ChangeToken
 
 class ConfigurationChangeToken : ChangeToken {
     override val hasChanged: Boolean

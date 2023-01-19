@@ -1,5 +1,7 @@
 package net.rikarin.configuration
 
+import net.rikarin.primitives.ChangeToken
+
 interface ConfigurationProvider {
     val reloadtoken: ChangeToken
 

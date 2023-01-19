@@ -11,6 +11,6 @@ interface ApplicationBuilder {
     val properties: Map<String, Any?>
 
     fun use(middleware: (delegate: RequestDelegate) -> RequestDelegate): ApplicationBuilder
-    fun new()
+    fun new(): ApplicationBuilder
     fun build(): RequestDelegate
 }

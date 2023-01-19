@@ -1,8 +1,6 @@
-package net.rikarin.configuration
+package net.rikarin.primitives
 
 interface ChangeToken {
-    // TODO: move this interface outside of configuration
-
     val hasChanged: Boolean
     val activeChangeCallbacks: Boolean
 
