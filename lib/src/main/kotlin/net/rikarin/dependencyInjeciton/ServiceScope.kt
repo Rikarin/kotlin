@@ -1,5 +1,7 @@
 package net.rikarin.dependencyInjeciton
 
-interface ServiceScope : AutoCloseable {
+import net.rikarin.Disposable
+
+interface ServiceScope : Disposable {
     val serviceProvider: ServiceProvider
 }

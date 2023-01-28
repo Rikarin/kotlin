@@ -1,15 +1,16 @@
 package net.rikarin.configuration.implementation
 
+import net.rikarin.Disposable
 import net.rikarin.primitives.ChangeToken
 import net.rikarin.configuration.ConfigurationProvider
 import net.rikarin.configuration.ConfigurationRoot
 import net.rikarin.core.exchange
 import java.util.concurrent.atomic.AtomicReference
 
-class DefaultConfigurationRoot(providers: List<ConfigurationProvider>) : ConfigurationRoot, AutoCloseable {
+class DefaultConfigurationRoot(providers: List<ConfigurationProvider>) : ConfigurationRoot, Disposable {
     private val _providers: List<ConfigurationProvider>
     private val _changeToken = AtomicReference(ConfigurationChangeToken())
-    private val _changeTokenRegistrations = mutableListOf<AutoCloseable>()
+    private val _changeTokenRegistrations = mutableListOf<Disposable>()
 
     init {
         _providers = providers
@@ -62,7 +63,7 @@ class DefaultConfigurationRoot(providers: List<ConfigurationProvider>) : Configu
 
     override fun getSection(key: String) = DefaultConfigurationSection(this, key)
 
-    override fun close() {
+    override fun dispose() {
         TODO("Not yet implemented")
     }
 

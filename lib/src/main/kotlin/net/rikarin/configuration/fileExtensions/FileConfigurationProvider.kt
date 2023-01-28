@@ -1,10 +1,11 @@
 package net.rikarin.configuration.fileExtensions
 
+import net.rikarin.Disposable
 import net.rikarin.configuration.implementation.DefaultConfigurationProvider
 import java.io.InputStream
 
-abstract class FileConfigurationProvider(val source: FileConfigurationSource) : DefaultConfigurationProvider(), AutoCloseable {
-    private val _changeTokenRegistration: AutoCloseable? = null
+abstract class FileConfigurationProvider(val source: FileConfigurationSource) : DefaultConfigurationProvider(), Disposable {
+    private val _changeTokenRegistration: Disposable? = null
 
     override fun load() {
         load(false)
@@ -27,7 +28,7 @@ abstract class FileConfigurationProvider(val source: FileConfigurationSource) : 
 //        onReload()
     }
 
-    override fun close() {
-        _changeTokenRegistration?.close()
+    override fun dispose() {
+        _changeTokenRegistration?.dispose()
     }
 }

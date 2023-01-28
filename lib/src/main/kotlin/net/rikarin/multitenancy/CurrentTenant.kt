@@ -1,5 +1,6 @@
 package net.rikarin.multitenancy
 
+import net.rikarin.Disposable
 import net.rikarin.core.ID
 
 interface CurrentTenant {
@@ -7,5 +8,5 @@ interface CurrentTenant {
     val name: String?
     val isAvailable: Boolean
 
-    fun change(id: ID?, name: String?): AutoCloseable
+    fun change(id: ID?, name: String?): Disposable
 }

@@ -3,14 +3,14 @@ package net.rikarin.http
 import net.rikarin.dependencyInjeciton.ServiceProvider
 import net.rikarin.http.features.FeatureCollection
 
-typealias RequestDelegate = suspend (context: HttpContext) -> Unit
+typealias RequestDelegate = suspend (HttpContext) -> Unit
 
 interface ApplicationBuilder {
     var applicationServices: ServiceProvider
     val serverFeatures: FeatureCollection
-    val properties: Map<String, Any?>
+    val properties: MutableMap<String, Any?>
 
-    fun use(middleware: (delegate: RequestDelegate) -> RequestDelegate): ApplicationBuilder
+    fun use(middleware: (RequestDelegate) -> RequestDelegate): ApplicationBuilder
     fun new(): ApplicationBuilder
     fun build(): RequestDelegate
 }

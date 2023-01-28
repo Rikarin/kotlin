@@ -11,7 +11,7 @@ private const val SERVER_FEATURE_KEY = "server.features"
 private const val APPLICATION_SERVICES_KEY = "application.services"
 
 internal class DefaultApplicationBuilder: ApplicationBuilder {
-    private val _components = mutableListOf<(delegate: RequestDelegate) -> RequestDelegate>()
+    private val _components = mutableListOf<(RequestDelegate) -> RequestDelegate>()
 
     override var applicationServices: ServiceProvider
         get() = properties[APPLICATION_SERVICES_KEY] as ServiceProvider
@@ -37,7 +37,7 @@ internal class DefaultApplicationBuilder: ApplicationBuilder {
     }
 
 
-    override fun use(middleware: (delegate: RequestDelegate) -> RequestDelegate): ApplicationBuilder {
+    override fun use(middleware: (RequestDelegate) -> RequestDelegate): ApplicationBuilder {
         _components.add(middleware)
         return this
     }

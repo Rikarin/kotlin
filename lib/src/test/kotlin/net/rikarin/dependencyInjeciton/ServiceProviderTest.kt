@@ -1,6 +1,9 @@
 package net.rikarin.dependencyInjeciton
 
 import org.junit.jupiter.api.Test
+import kotlin.reflect.full.createInstance
+import kotlin.reflect.full.createType
+import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.typeOf
 import kotlin.test.assertEquals
 
@@ -8,8 +11,8 @@ class ServiceProviderTest {
     @Test
     fun testServiceProvider() {
         val serviceCollection = DefaultServiceCollection()
-        serviceCollection.singleton<FooBar>(FooBar("foo", "bar"))
-        serviceCollection.scoped<TestInterface, TestClass>()
+        serviceCollection.addSingleton<FooBar>(FooBar("foo", "bar"))
+        serviceCollection.addScoped<TestInterface, TestClass>()
 
         val provider = serviceCollection.buildServiceProvider()
 
@@ -41,8 +44,8 @@ class ServiceProviderTest {
     @Test
     fun genericTest() {
         val serviceCollection = DefaultServiceCollection()
-        serviceCollection.singleton<GenericClass<String>>(GenericClass("foo"))
-        serviceCollection.singleton<GenericClass<Int>>(GenericClass(42))
+        serviceCollection.addSingleton<GenericClass<String>>(GenericClass("foo"))
+        serviceCollection.addSingleton<GenericClass<Int>>(GenericClass(42))
 
         val provider = serviceCollection.buildServiceProvider()
 
@@ -51,6 +54,15 @@ class ServiceProviderTest {
 
         assertEquals("foo", str.value)
         assertEquals(42, num.value)
+
+        val gencls: Any? = null //GenericClass<String>("foobar")
+        val type = gencls::class
+
+        val instance = type.primaryConstructor?.call("foo")
+//        val type = gencls.javaClass.kotlin.createType(gencls.javaClass.kotlin.)
+//        val type = typeOf<GenericClass<String>>()
+        println("type $type $instance")
+
     }
 }
 

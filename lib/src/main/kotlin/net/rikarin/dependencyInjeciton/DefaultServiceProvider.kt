@@ -6,13 +6,12 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
-import kotlin.reflect.typeOf
 
-internal class DefaultServiceProvider(
+class DefaultServiceProvider(
     private val implementations: Map<KType, List<ServiceDescriptor>>,
     private val singletons: MutableMap<ServiceDescriptor, Any>,
     serviceScope: ServiceScope?
-) : ServiceProvider {
+) : ServiceProvider, ServiceScopeFactory {
     private val serviceScope: DefaultServiceScope
 
     init {
