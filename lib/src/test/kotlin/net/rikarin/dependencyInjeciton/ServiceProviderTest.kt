@@ -1,10 +1,8 @@
 package net.rikarin.dependencyInjeciton
 
+import net.rikarin.use
 import org.junit.jupiter.api.Test
-import kotlin.reflect.full.createInstance
-import kotlin.reflect.full.createType
 import kotlin.reflect.full.primaryConstructor
-import kotlin.reflect.typeOf
 import kotlin.test.assertEquals
 
 class ServiceProviderTest {
@@ -54,15 +52,6 @@ class ServiceProviderTest {
 
         assertEquals("foo", str.value)
         assertEquals(42, num.value)
-
-        val gencls: Any? = null //GenericClass<String>("foobar")
-        val type = gencls::class
-
-        val instance = type.primaryConstructor?.call("foo")
-//        val type = gencls.javaClass.kotlin.createType(gencls.javaClass.kotlin.)
-//        val type = typeOf<GenericClass<String>>()
-        println("type $type $instance")
-
     }
 }
 

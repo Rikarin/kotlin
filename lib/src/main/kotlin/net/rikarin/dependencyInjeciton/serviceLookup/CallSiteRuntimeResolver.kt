@@ -20,7 +20,28 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
     }
 
     override fun visitRootCache(callSite: ServiceCallSite, argument: RuntimeResolverContext): Any? {
-        TODO()
+        if (callSite.value is Any) {
+            return callSite.value
+        }
+
+        val serviceProviderEngine = argument.scope.rootProvider.root
+        synchronized(callSite) {
+            // Lock the callsite and check if another thread already cached the value
+            if (callSite.value is Any) {
+                return callSite.value
+            }
+
+            val resolved = visitCallSiteMain(callSite, RuntimeResolverContext().apply {
+                scope = serviceProviderEngine
+                // TODO
+//                val lockType = RuntimeResolverLock.Root
+//                acquiredLocks = argument.acquiredLocks | lockType
+            })
+
+            serviceProviderEngine.captureDisposable(resolved)
+            callSite.value = resolved
+            return resolved
+        }
     }
 
     override fun visitScopeCache(callSite: ServiceCallSite, argument: RuntimeResolverContext): Any? {
@@ -37,6 +58,7 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
     }
 
     override fun visitIterable(callSite: IterableCallSite, argument: RuntimeResolverContext): Any? {
+
         TODO("Not yet implemented")
     }
 

@@ -1,134 +1,121 @@
 package net.rikarin.dependencyInjeciton
 
-import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty
+import net.rikarin.AggregateException
+import net.rikarin.ObjectDisposedException
+import net.rikarin.dependencyInjeciton.serviceLookup.*
+import net.rikarin.dependencyInjeciton.serviceLookup.CallSiteValidator
+import net.rikarin.dependencyInjeciton.serviceLookup.RuntimeServiceProviderEngine
+import net.rikarin.dependencyInjeciton.serviceLookup.ServiceProviderEngine
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KType
-import kotlin.reflect.full.hasAnnotation
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.typeOf
+
+private typealias RealizeAction = (ServiceProviderEngineScope) -> Any?
 
 class DefaultServiceProvider(
-    private val implementations: Map<KType, List<ServiceDescriptor>>,
-    private val singletons: MutableMap<ServiceDescriptor, Any>,
-    serviceScope: ServiceScope?
-) : ServiceProvider, ServiceScopeFactory {
-    private val serviceScope: DefaultServiceScope
+    serviceDescriptors: List<ServiceDescriptor>,
+    options: ServiceProviderOptions
+) : ServiceProvider {
+    private val _realizedServices = ConcurrentHashMap<KType, RealizeAction>()
+    private var _callSiteValidator: CallSiteValidator? = null
+
+    internal var isDisposed = false
+        private set
+
+    internal val engine = getEngine()
+    internal val root = ServiceProviderEngineScope(this, true)
+    internal val callSiteFactory = CallSiteFactory(serviceDescriptors)
 
     init {
-        if (serviceScope == null) {
-            this.serviceScope = DefaultServiceScope(this)
-        } else {
-            this.serviceScope = serviceScope as DefaultServiceScope
-        }
-    }
+        callSiteFactory.add(typeOf<ServiceProvider>(), ServiceProviderCallSite())
+        callSiteFactory.add(typeOf<ServiceScopeFactory>(), ConstantCallSite(typeOf<ServiceScopeFactory>(), root))
+        callSiteFactory.add(typeOf<ServiceProviderIsService>(), ConstantCallSite(typeOf<ServiceProviderIsService>(), callSiteFactory))
 
-    override fun getService(type: KType): Any? {
-        if (type.classifier == ServiceProvider::class) {
-            return this
+        if (options.validateScopes) {
+            _callSiteValidator = CallSiteValidator()
         }
 
-        if (implementations[type] == null) {
-            return null
-        }
-
-        if (implementations[type]!!.size != 1) {
-            throw Exception("multiple services found")
-        }
-
-        return getServices(type).first()
-    }
-
-    override fun getServices(type: KType): Collection<Any> {
-        if (implementations[type] == null) {
-            return emptyList()
-        }
-
-        val ret = mutableListOf<Any>()
-        for (desc in implementations[type]!!) {
-            // Implementation instance for singleton
-            // check for already resolved types
-            // resolve type
-            // store type to cache
-
-            if (desc.lifetime == ServiceLifetime.SINGLETON && desc.implementationInstance != null) {
-                ret.add(desc.implementationInstance)
-                continue
-            }
-
-            if (desc.lifetime == ServiceLifetime.SCOPED) {
-                val scoped = serviceScope.scope[desc]
-                if (scoped != null) {
-                    ret.add(scoped)
-                    continue
-                }
-            } else if (desc.lifetime == ServiceLifetime.SINGLETON) {
-                val singleton = singletons[desc]
-                if (singleton != null) {
-                    ret.add(singleton)
-                    continue
+        if (options.validateOnBuild) {
+            val exceptions = mutableListOf<Exception>()
+            for (desc in serviceDescriptors) {
+                try {
+                    validateService(desc)
+                } catch (e: Exception) {
+                    exceptions.add(e)
                 }
             }
 
-            var newInstance: Any
-            if (desc.implementationType != null) {
-                // TODO: this will use only primary constructor and not any other defined in the body of a class
-                val ctr = (desc.implementationType.classifier as KClass<*>).primaryConstructor
-                val params = ctr?.parameters!!
-
-                val args = mutableListOf<Any>()
-                for (p in params) {
-                    args.add(getRequiredService(p.type))
-                }
-
-                newInstance = ctr.call(*args.toTypedArray())
-
-                val props = newInstance::class.memberProperties.filter { it.hasAnnotation<Inject>() }
-                for (prop in props) {
-                    if (prop is KMutableProperty<*>) {
-                        prop.setter.call(newInstance, getService(prop.returnType))
-                    }
-                }
-            } else if (desc.implementationFactory != null) {
-                newInstance = desc.implementationFactory.invoke(this)
-            } else {
-                throw Exception("broken ServiceDescriptor")
+            if (exceptions.isNotEmpty()) {
+                throw AggregateException("Some services are not able to be constructed", *exceptions.toTypedArray())
             }
-
-            if (desc.lifetime == ServiceLifetime.SCOPED) {
-                serviceScope.scope[desc] = newInstance
-            } else if (desc.lifetime == ServiceLifetime.SINGLETON) {
-                singletons[desc] = newInstance
-            }
-
-            ret.add(newInstance)
         }
 
-        return ret.toList()
+        // TODO: log event
     }
 
-    override fun getRequiredService(type: KType): Any {
-        return getService(type) ?: throw Exception("service does not have any valid implementation for $type")
+    override fun dispose() {
+        isDisposed = true
+        root.dispose()
+        // TODO: event log
     }
 
-    override fun createScope(): ServiceScope = DefaultServiceScope(this)
-    override fun close() {}
+    override fun getService(type: KType) = getService(type, root)
 
-    private class DefaultServiceScope(serviceProvider: DefaultServiceProvider) : ServiceScope {
-        val scope: MutableMap<ServiceDescriptor, Any>
+    internal fun getService(serviceType: KType, serviceScope: ServiceProviderEngineScope): Any? {
+        ensureNotDisposed()
 
-        override val serviceProvider: ServiceProvider
+        val realizedService = _realizedServices.getOrPut(serviceType) { createServiceAccessor(serviceType) }
+        onResolve(serviceType, serviceScope)
+        // TODO: event log
+        val result = realizedService(serviceScope)
 
-        init {
-            if (serviceProvider.serviceScope != null) {
-                scope = serviceProvider.serviceScope.scope.toMutableMap()
-            } else {
-                scope = mutableMapOf()
+        assert(result == null || callSiteFactory.isService(serviceType))
+        return result
+    }
+
+    internal fun createScope(): ServiceScope {
+        ensureNotDisposed()
+        return ServiceProviderEngineScope(this, false)
+    }
+
+    private fun getEngine(): ServiceProviderEngine = RuntimeServiceProviderEngine
+
+    private fun ensureNotDisposed() {
+        if (isDisposed) {
+            throw ObjectDisposedException()
+        }
+    }
+
+    private fun createServiceAccessor(serviceType: KType): RealizeAction {
+        val callSite = callSiteFactory.getCallSite(serviceType, CallSiteChain())
+        if (callSite != null) {
+            // TODO: log event
+            onCreate(callSite)
+
+            if (callSite.cache.location == CallSiteResultCacheLocation.ROOT) {
+                val value = CallSiteRuntimeResolver.resolve(callSite, root)
+                return { value }
             }
 
-            this.serviceProvider =
-                DefaultServiceProvider(serviceProvider.implementations, serviceProvider.singletons, this)
+            return engine.realizeService(callSite)
         }
 
-        override fun close() {}
+        return { null }
+    }
+
+    internal fun replaceServiceAccessor(callSite: ServiceCallSite, accessor: RealizeAction) {
+        _realizedServices[callSite.serviceType] = accessor
+    }
+
+    private fun validateService(descriptor: ServiceDescriptor) {
+        TODO()
+    }
+
+    private fun onCreate(callSite: ServiceCallSite) {
+        _callSiteValidator?.validateCallSite(callSite)
+    }
+
+    private fun onResolve(serviceType: KType, scope: ServiceScope) {
+        _callSiteValidator?.validateResolution(serviceType, scope, root)
     }
 }

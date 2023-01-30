@@ -15,7 +15,7 @@ class DefaultOptionsMonitor<TOptions : Any> : OptionsMonitor<TOptions>, Disposab
         TODO("Not yet implemented")
     }
 
-    override fun close() {
+    override fun dispose() {
         TODO("Not yet implemented")
     }
 }

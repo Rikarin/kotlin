@@ -3,14 +3,14 @@ package net.rikarin.dependencyInjeciton.serviceLookup
 import net.rikarin.Disposable
 import net.rikarin.InvalidOperationException
 import net.rikarin.ObjectDisposedException
-import net.rikarin.dependencyInjeciton.DefaultServiceProvider2
+import net.rikarin.dependencyInjeciton.DefaultServiceProvider
 import net.rikarin.dependencyInjeciton.ServiceProvider
 import net.rikarin.dependencyInjeciton.ServiceScope
 import net.rikarin.dependencyInjeciton.ServiceScopeFactory
 import kotlin.reflect.KType
 
 class ServiceProviderEngineScope(
-    val rootProvider: DefaultServiceProvider2,
+    val rootProvider: DefaultServiceProvider,
     val isRootScope: Boolean
 ) : ServiceScope, ServiceProvider, ServiceScopeFactory {
     private var _disposed = false
@@ -59,10 +59,7 @@ class ServiceProviderEngineScope(
         }
 
         if (disposed) {
-            if (service is Disposable) {
-                service.dispose()
-            }
-
+            service.dispose()
             throw ObjectDisposedException()
         }
 

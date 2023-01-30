@@ -4,7 +4,7 @@ import net.rikarin.InvalidOperationException
 import net.rikarin.dependencyInjeciton.ServiceCollection
 import net.rikarin.dependencyInjeciton.ServiceDescriptor
 import net.rikarin.nameOf
-import kotlin.reflect.full.createType
+import kotlin.reflect.typeOf
 
 internal class BootstrapHostBuilder(private val builder: HostApplicationBuilder) : HostBuilder {
     val _configureHostActions = mutableListOf<HostConfigurationAction>()
@@ -19,7 +19,7 @@ internal class BootstrapHostBuilder(private val builder: HostApplicationBuilder)
 
     init {
         for (descriptor in builder.services) {
-            if (descriptor.serviceType == HostBuilderContext::class.createType()) { // TODO: check this
+            if (descriptor.serviceType == typeOf<HostBuilderContext>()) {
                 context = descriptor.implementationInstance as HostBuilderContext
                 break
             }
@@ -66,7 +66,7 @@ internal class BootstrapHostBuilder(private val builder: HostApplicationBuilder)
 
         for (i in builder.services.size downTo 0) {
             val desc = builder.services[i]
-            if (desc.serviceType == HostedService::class.createType()) {
+            if (desc.serviceType == typeOf<HostedService>()) {
                 // TODO: check implementation type
 
                 builder.services.removeAt(i)
