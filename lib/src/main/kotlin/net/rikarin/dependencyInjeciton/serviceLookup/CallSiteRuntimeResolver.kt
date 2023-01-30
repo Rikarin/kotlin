@@ -16,7 +16,10 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
     }
 
     override fun visitConstructor(callSite: ConstructorCallSite, argument: RuntimeResolverContext): Any? {
-        TODO("Not yet implemented")
+        val parameterValues = if (callSite.parameterCallSites.isEmpty()) listOf()
+            else callSite.parameterCallSites.map { visitCallSite(it, argument) }
+
+        return callSite.constructor.call(*parameterValues.toTypedArray())
     }
 
     override fun visitRootCache(callSite: ServiceCallSite, argument: RuntimeResolverContext): Any? {
@@ -49,22 +52,16 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
             else visitCache(callSite, argument, argument.scope, RuntimeResolverLock.Scope)
     }
 
-    override fun visitConstant(callSite: ConstantCallSite, argument: RuntimeResolverContext): Any? {
-        return callSite.value
-    }
+    override fun visitConstant(callSite: ConstantCallSite, argument: RuntimeResolverContext): Any? = callSite.value
 
-    override fun visitServiceProvider(callSite: ServiceProviderCallSite, argument: RuntimeResolverContext): Any? {
-        return argument.scope
-    }
+    override fun visitServiceProvider(callSite: ServiceProviderCallSite, argument: RuntimeResolverContext): Any? =
+        argument.scope
 
-    override fun visitIterable(callSite: IterableCallSite, argument: RuntimeResolverContext): Any? {
+    override fun visitIterable(callSite: IterableCallSite, argument: RuntimeResolverContext): Any? =
+        callSite.serviceCallSites.map { visitCallSite(it, argument) }.toTypedArray()
 
-        TODO("Not yet implemented")
-    }
-
-    override fun visitFactory(callSite: FactoryCallSite, argument: RuntimeResolverContext): Any? {
-        return callSite.factory(argument.scope)
-    }
+    override fun visitFactory(callSite: FactoryCallSite, argument: RuntimeResolverContext): Any? =
+        callSite.factory(argument.scope)
 
     private fun visitCache(
         callSite: ServiceCallSite,
@@ -72,6 +69,29 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
         serviceProviderEngine: ServiceProviderEngineScope,
         lockType: RuntimeResolverLock
     ): Any? {
-        TODO()
+
+        // TODO: locks and stuff
+
+        val resolvedServices = serviceProviderEngine.resolvedServices
+
+        try {
+            var resolved = resolvedServices.getOrDefault(callSite.cache.key, null)
+            if (resolved != null) {
+                return resolved
+            }
+
+            resolved = visitCallSiteMain(callSite, RuntimeResolverContext().apply {
+                scope = serviceProviderEngine
+                // TODO
+//                acquiredLocks
+            })
+
+            serviceProviderEngine.captureDisposable(resolved)
+            resolvedServices.put(callSite.cache.key, resolved)
+
+            return resolved
+        } finally {
+            println("asdf")
+        }
     }
 }

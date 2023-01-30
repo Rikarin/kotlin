@@ -1,11 +1,13 @@
 package net.rikarin.dependencyInjeciton.serviceLookup
 
 import net.rikarin.InvalidOperationException
+import net.rikarin.asClass
 import net.rikarin.dependencyInjeciton.ServiceDescriptor
 import net.rikarin.dependencyInjeciton.ServiceProvider
 import net.rikarin.dependencyInjeciton.ServiceProviderIsService
 import net.rikarin.dependencyInjeciton.ServiceScopeFactory
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.reflect.KParameter
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
@@ -82,8 +84,7 @@ internal class CallSiteFactory(
             } else if (descriptor.implementationFactory != null) {
                 callSite = FactoryCallSite(lifetime, descriptor.serviceType, descriptor.implementationFactory)
             } else if (descriptor.implementationType != null) {
-                TODO()
-//                callSite =
+                callSite = createConstructorCallSite(lifetime, descriptor.serviceType, descriptor.implementationType, callSiteChain)
             } else {
                 throw InvalidOperationException()
             }
@@ -93,6 +94,69 @@ internal class CallSiteFactory(
         }
 
         return null
+    }
+
+    private fun createConstructorCallSite(
+        lifetime: ResultCache,
+        serviceType: KType,
+        implementationType: KType,
+        callSiteChain: CallSiteChain
+    ): ServiceCallSite {
+        try {
+            callSiteChain.add(serviceType, implementationType)
+            val constructors = implementationType.asClass().constructors.toList()
+
+            println("impl ${constructors.size}")
+            if (constructors.isEmpty()) {
+                throw InvalidOperationException()
+            } else if (constructors.size == 1) {
+                val constructor = constructors[0]
+                val parameters = constructor.parameters
+
+                if (parameters.isEmpty()) {
+                    return ConstructorCallSite(lifetime, serviceType, constructor, arrayOf())
+                }
+
+                val parameterCallSites = createArgumentCallSites(
+                    implementationType,
+                    callSiteChain,
+                    parameters,
+                    true
+                )!!
+
+                return ConstructorCallSite(lifetime, serviceType, constructor, parameterCallSites)
+            }
+
+            TODO()
+        } finally {
+            callSiteChain.remove(serviceType)
+        }
+    }
+
+    private fun createArgumentCallSites(
+        implementationType: KType,
+        callSiteChain: CallSiteChain,
+        parameters: List<KParameter>,
+        throwIfCallSiteNotFound: Boolean
+    ): Array<ServiceCallSite>? {
+        return parameters.map {
+            val parameterType = it.type
+            var callSite = getCallSite(parameterType, callSiteChain)
+
+            if (callSite == null && it.isOptional) {
+                callSite = ConstantCallSite(it.type, null) // TODO
+            }
+
+            if (callSite == null) {
+                if (throwIfCallSiteNotFound) {
+                    throw InvalidOperationException()
+                }
+
+                return null
+            }
+
+            callSite
+        }.toTypedArray()
     }
 
 

@@ -6,7 +6,7 @@ import net.rikarin.core.exchange
 import java.util.concurrent.atomic.AtomicReference
 
 abstract class DefaultConfigurationProvider : ConfigurationProvider {
-    private val _reloadToken = AtomicReference(ConfigurationChangeToken())
+    private val _reloadToken = AtomicReference(ConfigurationReloadToken())
 
     protected val data = mutableMapOf<String, String?>()
 
@@ -47,7 +47,7 @@ abstract class DefaultConfigurationProvider : ConfigurationProvider {
     }
 
     protected fun onReload() {
-        val previousToken = _reloadToken.exchange(ConfigurationChangeToken())
+        val previousToken = _reloadToken.exchange(ConfigurationReloadToken())
         previousToken.onReload()
     }
 

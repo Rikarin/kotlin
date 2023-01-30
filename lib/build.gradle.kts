@@ -28,6 +28,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.0")
     implementation("com.charleskorn.kaml:kaml:0.49.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("io.reactivex.rxjava3:rxkotlin:3.0.1")
 }
 
 testing {

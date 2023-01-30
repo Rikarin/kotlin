@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 class DefaultConfigurationRoot(providers: List<ConfigurationProvider>) : ConfigurationRoot, Disposable {
     private val _providers: List<ConfigurationProvider>
-    private val _changeToken = AtomicReference(ConfigurationChangeToken())
+    private val _changeToken = AtomicReference(ConfigurationReloadToken())
     private val _changeTokenRegistrations = mutableListOf<Disposable>()
 
     init {
@@ -68,7 +68,7 @@ class DefaultConfigurationRoot(providers: List<ConfigurationProvider>) : Configu
     }
 
     private fun raiseChanged() {
-        val previousToken = _changeToken.exchange(ConfigurationChangeToken())
+        val previousToken = _changeToken.exchange(ConfigurationReloadToken())
         previousToken.onReload()
     }
 }
