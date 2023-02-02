@@ -1,15 +1,13 @@
 package net.rikarin.dependencyInjeciton.serviceLookup
 
-import net.rikarin.InvalidOperationException
-import net.rikarin.asClass
+import net.rikarin.*
 import net.rikarin.dependencyInjeciton.ServiceDescriptor
 import net.rikarin.dependencyInjeciton.ServiceProvider
 import net.rikarin.dependencyInjeciton.ServiceProviderIsService
 import net.rikarin.dependencyInjeciton.ServiceScopeFactory
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.reflect.KParameter
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
+import kotlin.reflect.*
+import kotlin.reflect.full.createType
 
 private const val DEFAULT_SLOT = 0
 
@@ -52,7 +50,8 @@ internal class CallSiteFactory(
             callSiteChain.checkCircularDependency(serviceType)
         }
 
-        return tryCreateExact(serviceType, callSiteChain)
+        return tryCreateExact(serviceType, callSiteChain) ?:
+            tryCreateOpenGeneric(serviceType, callSiteChain)
         // TODO: another implementations
     }
 
@@ -86,7 +85,7 @@ internal class CallSiteFactory(
             } else if (descriptor.implementationType != null) {
                 callSite = createConstructorCallSite(lifetime, descriptor.serviceType, descriptor.implementationType, callSiteChain)
             } else {
-                throw InvalidOperationException()
+                throw InvalidOperationException("todo 2")
             }
 
             _callSiteCache[callSiteKey] = callSite
@@ -95,6 +94,54 @@ internal class CallSiteFactory(
 
         return null
     }
+
+    private fun tryCreateOpenGeneric(serviceType: KType, callSiteChain: CallSiteChain): ServiceCallSite? {
+        val descriptor = _descriptorLookup.getOrDefault(serviceType.getGenericTypeDefinition(), null)
+
+        if (serviceType.isConstructedGenericType && descriptor != null) {
+            return tryCreateOpenGeneric(descriptor.last, serviceType, callSiteChain, DEFAULT_SLOT, true)
+        }
+
+        return null
+    }
+
+    private fun tryCreateOpenGeneric(
+        descriptor: ServiceDescriptor,
+        serviceType: KType,
+        callSiteChain: CallSiteChain,
+        slot: Int,
+        throwOnConstraintViolation: Boolean
+    ): ServiceCallSite? {
+        // TODO
+        if (serviceType.isConstructedGenericType) {
+            val callSiteKey = ServiceCacheKey(serviceType, slot)
+            val serviceCallSite = _callSiteCache.getOrDefault(callSiteKey, null)
+            if (serviceCallSite != null) {
+                return serviceCallSite
+            }
+
+            assert(descriptor.implementationType != null)
+            val lifetime = ResultCache(descriptor.lifetime, serviceType, slot)
+            val closedType: KType
+
+            try {
+                closedType = descriptor.implementationType!!.asClass().createType(serviceType.arguments)
+            } catch (e: Exception) {
+                if (throwOnConstraintViolation) {
+                    throw e
+                }
+
+                return null
+            }
+
+            _callSiteCache[callSiteKey] = createConstructorCallSite(lifetime, serviceType, closedType, callSiteChain)
+            return _callSiteCache[callSiteKey]
+        }
+
+        return null
+    }
+
+    // TODO iterable
 
     private fun createConstructorCallSite(
         lifetime: ResultCache,
@@ -106,9 +153,8 @@ internal class CallSiteFactory(
             callSiteChain.add(serviceType, implementationType)
             val constructors = implementationType.asClass().constructors.toList()
 
-            println("impl ${constructors.size}")
             if (constructors.isEmpty()) {
-                throw InvalidOperationException()
+                throw InvalidOperationException("todo 3")
             } else if (constructors.size == 1) {
                 val constructor = constructors[0]
                 val parameters = constructor.parameters
@@ -127,7 +173,50 @@ internal class CallSiteFactory(
                 return ConstructorCallSite(lifetime, serviceType, constructor, parameterCallSites)
             }
 
-            TODO()
+            var parameterCallSites: Array<ServiceCallSite>? = null
+            var bestConstructor: KFunction<*>? = null
+            var bestConstructorParameterTypes: HashSet<KType>? = null
+
+            for (constructor in constructors.sortedBy { it.parameters.size }.asReversed()) {
+                val currentParameterCallSites = createArgumentCallSites(
+                    implementationType,
+                    callSiteChain,
+                    constructor.parameters,
+                    false
+                )
+
+                if (currentParameterCallSites != null) {
+                    if (bestConstructor == null) {
+                        bestConstructor = constructor
+                        parameterCallSites = currentParameterCallSites
+                    } else {
+                        if (bestConstructorParameterTypes == null) {
+                            bestConstructorParameterTypes = hashSetOf()
+
+                            for (p in bestConstructor.parameters) {
+                                bestConstructorParameterTypes.add(p.type)
+                            }
+                        }
+
+                        for (p in constructor.parameters) {
+                            if (!bestConstructorParameterTypes.contains(p.type)) {
+                                throw InvalidOperationException(AMBIGUOUS_CONSTRUCTOR_EXCEPTION.format(
+                                    implementationType,
+                                    bestConstructor,
+                                    constructor
+                                ))
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (bestConstructor == null) {
+                throw InvalidOperationException(UNABLE_TO_ACTIVATE_TYPE_EXCEPTION.format(implementationType))
+            }
+
+            assert(parameterCallSites != null)
+            return ConstructorCallSite(lifetime, serviceType, bestConstructor, parameterCallSites!!)
         } finally {
             callSiteChain.remove(serviceType)
         }
@@ -139,8 +228,11 @@ internal class CallSiteFactory(
         parameters: List<KParameter>,
         throwIfCallSiteNotFound: Boolean
     ): Array<ServiceCallSite>? {
+        val projected = projectGenericClassArguments(implementationType)
+//        println("projected ${implementationType.arguments}")
+
         return parameters.map {
-            val parameterType = it.type
+            val parameterType = projected[it.type] ?: it.type //throw InvalidOperationException(PROJECTED_TYPE_NOT_FOUND.format(it.type))
             var callSite = getCallSite(parameterType, callSiteChain)
 
             if (callSite == null && it.isOptional) {
@@ -149,7 +241,7 @@ internal class CallSiteFactory(
 
             if (callSite == null) {
                 if (throwIfCallSiteNotFound) {
-                    throw InvalidOperationException()
+                    throw InvalidOperationException(CANNOT_RESOLVE_SERVICE.format(parameterType, implementationType))
                 }
 
                 return null
@@ -159,24 +251,41 @@ internal class CallSiteFactory(
         }.toTypedArray()
     }
 
+    private fun projectGenericClassArguments(implementationType: KType): Map<KType, KType> {
+        val arguments = implementationType.asClass().typeParameters // T, U
+        val projections = implementationType.arguments // BaseClass, BaseClass2
 
+        if (projections.size != arguments.size) {
+            throw InvalidOperationException("Arguments and projections doens't match")
+        }
+
+        val projected = mutableMapOf<KType, KType>()
+        for (i in arguments.indices) {
+            projected[arguments[i].createType()] = projections[i].type!! // TODO: not sure about createType()
+        }
+
+        return projected
+    }
 
     fun add(type: KType, serviceCallSite: ServiceCallSite) {
         _callSiteCache[ServiceCacheKey(type, DEFAULT_SLOT)] = serviceCallSite
     }
 
     override fun isService(serviceType: KType): Boolean {
-        // TODO
+//        println("args ${serviceType.arguments}")
+        if (serviceType.isGenericTypeDefinition) { // TODO: check this; not sure it works properly
+            return false
+        }
 
         if (_descriptorLookup.containsKey(serviceType)) {
             return true
         }
 
-        // TODO
+        // TODO: check for generic type
 
         return serviceType == typeOf<ServiceProvider>() ||
                serviceType == typeOf<ServiceScopeFactory>() ||
-               serviceType == typeOf<ServiceProviderIsService>()
+               serviceType == typeOf<ServiceProviderIsService>() || true
     }
 
     private class ServiceDescriptorCacheItem {
@@ -217,7 +326,7 @@ internal class CallSiteFactory(
                 }
             }
 
-            throw InvalidOperationException()
+            throw InvalidOperationException("todo 1")
         }
 
         fun add(descriptor: ServiceDescriptor): ServiceDescriptorCacheItem {

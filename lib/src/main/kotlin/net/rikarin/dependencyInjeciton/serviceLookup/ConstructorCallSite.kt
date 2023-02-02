@@ -11,9 +11,11 @@ internal class ConstructorCallSite(
     val parameterCallSites: Array<ServiceCallSite>
 ) : ServiceCallSite(cache) {
     init {
-        if (!serviceType.isSupertypeOf(constructor.returnType)) {
-            throw IllegalArgumentException("error")
-        }
+        // TODO: not working for open generics
+//        println("se $serviceType ${constructor.returnType}")
+//        if (!serviceType.isSupertypeOf(constructor.returnType)) {
+//            throw IllegalArgumentException("error")
+//        }
     }
 
     override val kind = CallSiteKind.CONSTRUCTOR

@@ -2,7 +2,6 @@ package net.rikarin.dependencyInjeciton
 
 import net.rikarin.use
 import org.junit.jupiter.api.Test
-import kotlin.reflect.full.primaryConstructor
 import kotlin.test.assertEquals
 
 class ServiceProviderTest {
@@ -53,7 +52,33 @@ class ServiceProviderTest {
         assertEquals("foo", str.value)
         assertEquals(42, num.value)
     }
+
+    @Test
+    fun openGenericTest() {
+        val serviceCollection = DefaultServiceCollection()
+        serviceCollection.addTransient<BasicClass, BasicClass>()
+        serviceCollection.addSingleton<BasicClass2>(BasicClass2("foobar"))
+
+        serviceCollection.addTransient<GenericClass<*>, GenericClass<*>>()
+        serviceCollection.addTransient<SimpleClass<*>, SimpleClass<*>>()
+        serviceCollection.addTransient<SomeClass<*, *>, SomeClass<*, *>>()
+
+        val provider = serviceCollection.buildServiceProvider()
+
+        val genericBasic = provider.getRequiredService<SomeClass<BasicClass, BasicClass2>>()
+        assertEquals("foobar", genericBasic.value.value)
+        genericBasic.value.value = "barbar"
+
+        val genericBasic2 = provider.getRequiredService<SomeClass<BasicClass, BasicClass2>>()
+        assertEquals("barbar", genericBasic2.value.value)
+    }
 }
+
+class BasicClass
+class BasicClass2(var value: String)
+
+class SimpleClass<T>
+class SomeClass<T, U>(val value: U, val value2: T)
 
 class GenericClass<T>(val value: T)
 
@@ -67,6 +92,8 @@ private interface TestInterface {
 }
 
 class TestClass(private val fooBar: FooBar) : TestInterface {
+    constructor() : this(FooBar("asdf", "asdf")) { }
+
     @Inject
     var serviceProvider: ServiceProvider? = null
 

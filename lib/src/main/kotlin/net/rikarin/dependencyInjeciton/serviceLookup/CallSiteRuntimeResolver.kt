@@ -87,11 +87,15 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
             })
 
             serviceProviderEngine.captureDisposable(resolved)
-            resolvedServices.put(callSite.cache.key, resolved)
+            resolvedServices[callSite.cache.key] = resolved
 
             return resolved
         } finally {
             println("asdf")
         }
+    }
+
+    private fun injectServiceProvider(instance: Any) {
+
     }
 }

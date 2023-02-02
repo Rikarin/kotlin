@@ -88,6 +88,7 @@ class DefaultServiceProvider(
 
     private fun createServiceAccessor(serviceType: KType): RealizeAction {
         val callSite = callSiteFactory.getCallSite(serviceType, CallSiteChain())
+
         if (callSite != null) {
             // TODO: log event
             onCreate(callSite)
