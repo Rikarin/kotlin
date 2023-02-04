@@ -1,9 +1,6 @@
 package net.rikarin.dependencyInjeciton
 
-class ServiceProviderOptions {
-    var validateScopes = false
-    var validateOnBuild = false
-
+data class ServiceProviderOptions(val validateScopes: Boolean = false, val validateOnBuild: Boolean = false) {
     companion object {
         internal val DEFAULT = ServiceProviderOptions()
     }

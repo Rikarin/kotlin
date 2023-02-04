@@ -1,6 +1,7 @@
 package net.rikarin.dependencyInjeciton
 
 import net.rikarin.InvalidOperationException
+import net.rikarin.SERVICE_COLLECTION_READ_ONLY
 
 class DefaultServiceCollection : ServiceCollection {
     private val _descriptors = mutableListOf<ServiceDescriptor>()
@@ -76,7 +77,7 @@ class DefaultServiceCollection : ServiceCollection {
 
     private fun checkReadOnly() {
         if (isReadOnly) {
-            throw InvalidOperationException()
+            throw InvalidOperationException(SERVICE_COLLECTION_READ_ONLY)
         }
     }
 }

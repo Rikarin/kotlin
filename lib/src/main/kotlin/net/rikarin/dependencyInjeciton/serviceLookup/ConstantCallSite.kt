@@ -4,7 +4,6 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 
 internal class ConstantCallSite(override val serviceType: KType, defaultValue: Any?) : ServiceCallSite(ResultCache.NONE) {
-    // TODO: check where is this variable used
     override val implementationType
         get() = if (value != null) value!!::class.createType() else serviceType
 
@@ -12,5 +11,8 @@ internal class ConstantCallSite(override val serviceType: KType, defaultValue: A
 
     init {
         value = defaultValue
+
+        // TODO
+//        if (defaultValue != null && serviceType.is)
     }
 }

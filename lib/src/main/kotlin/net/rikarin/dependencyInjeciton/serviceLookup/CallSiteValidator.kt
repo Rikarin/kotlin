@@ -1,6 +1,9 @@
 package net.rikarin.dependencyInjeciton.serviceLookup
 
+import net.rikarin.DIRECT_SCOPED_RESOLVED_FROM_ROOT
 import net.rikarin.InvalidOperationException
+import net.rikarin.SCOPED_RESOLVED_FROM_ROOT
+import net.rikarin.dependencyInjeciton.ServiceLifetime
 import net.rikarin.dependencyInjeciton.ServiceScope
 import net.rikarin.dependencyInjeciton.ServiceScopeFactory
 import java.util.concurrent.ConcurrentHashMap
@@ -20,10 +23,11 @@ internal class CallSiteValidator : CallSiteVisitor<CallSiteValidator.CallSiteVal
     fun validateResolution(serviceType: KType, scope: ServiceScope, rootScope: ServiceScope) {
         val scopedService = _scopedServices[serviceType]
         if (scope == rootScope && scopedService != null) {
-            // TODO
-//            if (serviceType == scopedService) {
-                throw InvalidOperationException()
-//            }
+            if (serviceType == scopedService) {
+                throw InvalidOperationException(DIRECT_SCOPED_RESOLVED_FROM_ROOT.format(ServiceLifetime.SCOPED, serviceType))
+            }
+
+            throw InvalidOperationException(SCOPED_RESOLVED_FROM_ROOT.format(serviceType, ServiceLifetime.SCOPED, scopedService))
         }
     }
 

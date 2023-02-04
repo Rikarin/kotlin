@@ -1,6 +1,7 @@
 package net.rikarin.dependencyInjeciton
 
 import kotlin.reflect.KType
+import kotlin.reflect.full.createType
 import kotlin.reflect.typeOf
 
 typealias ServiceImplementationFactory = (ServiceProvider) -> Any
@@ -12,6 +13,19 @@ data class ServiceDescriptor(
     val implementationFactory: ServiceImplementationFactory? = null,
     val implementationInstance: Any? = null
 ) {
+    internal fun getImplementationType(): KType? {
+        if (implementationType != null) {
+            return implementationType
+        } else if (implementationInstance != null) {
+            return implementationInstance::class.createType() // TODO: not sure about generics
+        } else if (implementationFactory != null) {
+            TODO()
+        }
+
+        assert(false) { "ImplementationType, ImplementationInstance or ImplementationFactory must be non null" }
+        return null
+    }
+
     companion object {
         inline fun <reified TService : Any, reified TImplementation : TService> transient() =
             describe<TService, TImplementation>(ServiceLifetime.TRANSIENT)

@@ -2,7 +2,6 @@ package net.rikarin.dependencyInjeciton.serviceLookup
 
 import kotlin.reflect.KFunction
 import kotlin.reflect.KType
-import kotlin.reflect.full.isSupertypeOf
 
 internal class ConstructorCallSite(
     cache: ResultCache,

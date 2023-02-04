@@ -11,7 +11,7 @@ class ServiceProviderTest {
         serviceCollection.addSingleton<FooBar>(FooBar("foo", "bar"))
         serviceCollection.addScoped<TestInterface, TestClass>()
 
-        val provider = serviceCollection.buildServiceProvider()
+        val provider = serviceCollection.buildServiceProvider(ServiceProviderOptions(true, true))
 
         provider.createScope().use {
             val instance = it.serviceProvider.getRequiredService<TestInterface>()
@@ -95,7 +95,7 @@ class TestClass(private val fooBar: FooBar) : TestInterface {
     constructor() : this(FooBar("asdf", "asdf")) { }
 
     @Inject
-    var serviceProvider: ServiceProvider? = null
+    private var serviceProvider: ServiceProvider? = null
 
     override var name: String = ""
     override fun calculateFoo() = fooBar.foo

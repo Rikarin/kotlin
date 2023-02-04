@@ -1,5 +1,13 @@
 package net.rikarin.dependencyInjeciton.serviceLookup
 
+import net.rikarin.dependencyInjeciton.Inject
+import net.rikarin.dependencyInjeciton.ServiceProvider
+import kotlin.reflect.KMutableProperty
+import kotlin.reflect.full.hasAnnotation
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.typeOf
+
 internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext, Any?>() {
     fun resolve(callSite: ServiceCallSite, scope: ServiceProviderEngineScope): Any? {
         if (scope.isRootScope && callSite.value is Any) {
@@ -19,7 +27,7 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
         val parameterValues = if (callSite.parameterCallSites.isEmpty()) listOf()
             else callSite.parameterCallSites.map { visitCallSite(it, argument) }
 
-        return callSite.constructor.call(*parameterValues.toTypedArray())
+        return injectServiceProvider(callSite.constructor.call(*parameterValues.toTypedArray()), argument.scope)
     }
 
     override fun visitRootCache(callSite: ServiceCallSite, argument: RuntimeResolverContext): Any? {
@@ -61,7 +69,7 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
         callSite.serviceCallSites.map { visitCallSite(it, argument) }.toTypedArray()
 
     override fun visitFactory(callSite: FactoryCallSite, argument: RuntimeResolverContext): Any? =
-        callSite.factory(argument.scope)
+        injectServiceProvider(callSite.factory(argument.scope), argument.scope)
 
     private fun visitCache(
         callSite: ServiceCallSite,
@@ -88,14 +96,28 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
 
             serviceProviderEngine.captureDisposable(resolved)
             resolvedServices[callSite.cache.key] = resolved
-
             return resolved
         } finally {
-            println("asdf")
+            // TODO
         }
     }
 
-    private fun injectServiceProvider(instance: Any) {
+    private fun injectServiceProvider(instance: Any?, scope: ServiceProvider): Any? {
+        if (instance == null) {
+            return instance
+        }
 
+        val props = instance::class.memberProperties.filter {
+            it.hasAnnotation<Inject>() && it.returnType == typeOf<ServiceProvider?>()
+        }
+
+        for (prop in props) {
+            if (prop is KMutableProperty<*>) {
+                prop.isAccessible = true
+                prop.setter.call(instance, scope)
+            }
+        }
+
+        return instance
     }
 }

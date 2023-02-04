@@ -3,8 +3,7 @@ package net.rikarin.primitives
 // Immutable
 class StringValues(values: Array<String>): ArrayList<String>() {
     companion object {
-        val EMPTY
-            get() = StringValues(emptyArray())
+        val EMPTY = StringValues(emptyArray())
     }
 
     constructor(value: String) : this(arrayOf(value))

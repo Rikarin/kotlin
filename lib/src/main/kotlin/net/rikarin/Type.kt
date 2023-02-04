@@ -21,6 +21,12 @@ val KType.isGenericTypeDefinition
 val KType.isConstructedGenericType
     get() = arguments.isNotEmpty() && !arguments.contains(KTypeProjection.STAR)
 
+val KType.isAbstract
+    get() = asClass().isAbstract
+
+//val KType.isInterface
+//    get() = this as KInter
+
 fun KType.getGenericTypeDefinition() = asClass().starProjectedType
 
 //val genericTypeDefinition = serviceType.asClass().createType() // TODO: check this I think it should have STAR

@@ -1,6 +1,7 @@
 package net.rikarin.dependencyInjeciton
 
 import net.rikarin.AggregateException
+import net.rikarin.InvalidOperationException
 import net.rikarin.ObjectDisposedException
 import net.rikarin.dependencyInjeciton.serviceLookup.*
 import net.rikarin.dependencyInjeciton.serviceLookup.CallSiteValidator
@@ -104,12 +105,17 @@ class DefaultServiceProvider(
         return { null }
     }
 
-    internal fun replaceServiceAccessor(callSite: ServiceCallSite, accessor: RealizeAction) {
-        _realizedServices[callSite.serviceType] = accessor
-    }
-
     private fun validateService(descriptor: ServiceDescriptor) {
-        TODO()
+        // TODO: generic check
+
+        try {
+            val callSite = callSiteFactory.getCallSite(descriptor, CallSiteChain())
+            if (callSite != null) {
+                onCreate(callSite)
+            }
+        } catch (e: Exception) {
+            throw InvalidOperationException("Error while validating the service descriptor '$descriptor': ${e.message}")
+        }
     }
 
     private fun onCreate(callSite: ServiceCallSite) {

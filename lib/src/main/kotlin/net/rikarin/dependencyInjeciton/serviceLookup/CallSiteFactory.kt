@@ -14,7 +14,7 @@ private const val DEFAULT_SLOT = 0
 internal class CallSiteFactory(
     descriptors: List<ServiceDescriptor>
 ) : ServiceProviderIsService {
-    private val _stackGuard = StackGuard()
+//    private val _stackGuard = StackGuard()
     private val _callSiteCache = ConcurrentHashMap<ServiceCacheKey, ServiceCallSite>()
     private val _descriptorLookup = mutableMapOf<KType, ServiceDescriptorCacheItem>()
     private val _callSiteLocks = ConcurrentHashMap<KType, Any>()
@@ -29,15 +29,42 @@ internal class CallSiteFactory(
         for (descriptor in descriptors) {
             val serviceType = descriptor.serviceType
 
-            // TODO
+            if (serviceType.isGenericTypeDefinition) {
+                val implementationType = descriptor.implementationType
+                if (implementationType == null || !implementationType.isGenericTypeDefinition) {
+                    throw IllegalArgumentException(OPEN_GENERIC_SERVICE_REQUIRES_OPEN_GENERIC_IMPLEMENTATION.format(serviceType))
+                }
 
+                if (implementationType.isAbstract) { // TODO: isInterface
+                    throw IllegalArgumentException(TYPE_CANNOT_BE_ACTIVATED.format(implementationType, serviceType))
+                }
+
+                // TODO
+            } else if (descriptor.implementationInstance == null && descriptor.implementationFactory == null) {
+                assert(descriptor.implementationType != null)
+                val implementationType = descriptor.implementationType!!
+
+                if (implementationType.isGenericTypeDefinition ||
+                    implementationType.isAbstract
+                ) { // TODO: isInterface
+                    throw IllegalArgumentException(TYPE_CANNOT_BE_ACTIVATED.format(implementationType, serviceType))
+                }
+            }
 
             val cacheItem = _descriptorLookup.getOrDefault(serviceType, ServiceDescriptorCacheItem())
             _descriptorLookup[serviceType] = cacheItem.add(descriptor)
         }
     }
 
-    // TODO
+    internal fun getCallSite(serviceDescriptor: ServiceDescriptor, callSiteChain: CallSiteChain): ServiceCallSite? {
+        val descriptor = _descriptorLookup.getOrDefault(serviceDescriptor.serviceType, null)
+        if (descriptor != null) {
+            return tryCreateExact(serviceDescriptor, serviceDescriptor.serviceType, callSiteChain, descriptor.getSlot(serviceDescriptor))
+        }
+
+        println("_descriptorLookup didn't contain requested serviceDescriptor")
+        return null
+    }
 
     internal fun getCallSite(serviceType: KType, callSiteChain: CallSiteChain) =
         _callSiteCache.getOrElse(ServiceCacheKey(serviceType, DEFAULT_SLOT)) { createCallSite(serviceType, callSiteChain) }
@@ -51,10 +78,9 @@ internal class CallSiteFactory(
         }
 
         return tryCreateExact(serviceType, callSiteChain) ?:
-            tryCreateOpenGeneric(serviceType, callSiteChain)
-        // TODO: another implementations
+            tryCreateOpenGeneric(serviceType, callSiteChain) ?:
+            tryCreateIterable(serviceType, callSiteChain)
     }
-
     private fun tryCreateExact(serviceType: KType, callSiteChain: CallSiteChain): ServiceCallSite? {
         val descriptor = _descriptorLookup.getOrDefault(serviceType, null)
         if (descriptor != null) {
@@ -76,17 +102,16 @@ internal class CallSiteFactory(
                 return _callSiteCache[callSiteKey]
             }
 
-            val callSite: ServiceCallSite
             val lifetime = ResultCache(descriptor.lifetime, serviceType, slot)
-            if (descriptor.implementationInstance != null) {
-                callSite = ConstantCallSite(descriptor.serviceType, descriptor.implementationInstance)
-            } else if (descriptor.implementationFactory != null) {
-                callSite = FactoryCallSite(lifetime, descriptor.serviceType, descriptor.implementationFactory)
-            } else if (descriptor.implementationType != null) {
-                callSite = createConstructorCallSite(lifetime, descriptor.serviceType, descriptor.implementationType, callSiteChain)
-            } else {
-                throw InvalidOperationException("todo 2")
-            }
+            val callSite = if (descriptor.implementationInstance != null) {
+                    ConstantCallSite(descriptor.serviceType, descriptor.implementationInstance)
+                } else if (descriptor.implementationFactory != null) {
+                    FactoryCallSite(lifetime, descriptor.serviceType, descriptor.implementationFactory)
+                } else if (descriptor.implementationType != null) {
+                    createConstructorCallSite(lifetime, descriptor.serviceType, descriptor.implementationType, callSiteChain)
+                } else {
+                    throw InvalidOperationException("todo 2")
+                }
 
             _callSiteCache[callSiteKey] = callSite
             return callSite
@@ -141,7 +166,10 @@ internal class CallSiteFactory(
         return null
     }
 
-    // TODO iterable
+    private fun tryCreateIterable(serviceType: KType, callSiteChain: CallSiteChain): ServiceCallSite? {
+        // TODO: finish this
+        TODO()
+    }
 
     private fun createConstructorCallSite(
         lifetime: ResultCache,
@@ -229,7 +257,6 @@ internal class CallSiteFactory(
         throwIfCallSiteNotFound: Boolean
     ): Array<ServiceCallSite>? {
         val projected = projectGenericClassArguments(implementationType)
-//        println("projected ${implementationType.arguments}")
 
         return parameters.map {
             val parameterType = projected[it.type] ?: it.type //throw InvalidOperationException(PROJECTED_TYPE_NOT_FOUND.format(it.type))
@@ -272,7 +299,6 @@ internal class CallSiteFactory(
     }
 
     override fun isService(serviceType: KType): Boolean {
-//        println("args ${serviceType.arguments}")
         if (serviceType.isGenericTypeDefinition) { // TODO: check this; not sure it works properly
             return false
         }
