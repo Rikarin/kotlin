@@ -1,10 +1,11 @@
 package net.rikarin.configuration.yaml
 
+import net.rikarin.InvalidOperationException
 import net.rikarin.configuration.ConfigurationBuilder
 
 fun ConfigurationBuilder.addYamlFile(path: String, optional: Boolean = false, reloadOnChange: Boolean = false): ConfigurationBuilder {
     if (path.isEmpty()) {
-        throw Exception("invalid path")
+        throw InvalidOperationException("invalid path")
     }
 
     val source = YamlConfigurationSource()

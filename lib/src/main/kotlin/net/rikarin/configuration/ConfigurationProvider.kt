@@ -3,14 +3,10 @@ package net.rikarin.configuration
 import net.rikarin.primitives.ChangeToken
 
 interface ConfigurationProvider {
-    val reloadtoken: ChangeToken
+    val reloadToken: ChangeToken
 
-//    fun tryGet(key: String, out value: String?): Boolean
-    // maybe rename this to get and use it as an operator
-    fun getOrNull(key: String): String?
-    fun set(key: String, value: String?)
+    operator fun get(key: String): String?
+    operator fun set(key: String, value: String?)
     fun load()
-
     fun getChildKeys(earlierKeys: Iterable<String>, parentPath: String?): Iterable<String>
-//    fun getChildKeys(parentPath: String?): Iterable<String>
 }

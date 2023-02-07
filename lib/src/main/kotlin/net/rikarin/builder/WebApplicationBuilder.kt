@@ -1,12 +1,15 @@
 package net.rikarin.builder
 
 import net.rikarin.configuration.ConfigurationManager
-import net.rikarin.configuration.implementation.addInMemoryCollection
+import net.rikarin.configuration.addInMemoryCollection
 import net.rikarin.hosting.*
 
 class WebApplicationBuilder internal constructor(options: WebApplicationOptions, configureDefaults: ((HostBuilder) -> Unit)? = null) {
     private var _builtApplication: WebApplication? = null
     private val _hostApplicaitonBuilder: HostApplicationBuilder
+
+    val services get() = _hostApplicaitonBuilder.services
+    val configuration get() = _hostApplicaitonBuilder.configuration
 
     init {
         val configuration = ConfigurationManager()

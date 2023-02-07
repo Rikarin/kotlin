@@ -66,7 +66,7 @@ internal object CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverContext
         argument.scope
 
     override fun visitIterable(callSite: IterableCallSite, argument: RuntimeResolverContext): Any? =
-        callSite.serviceCallSites.map { visitCallSite(it, argument) }.toTypedArray()
+        callSite.serviceCallSites.map { visitCallSite(it, argument) }.asIterable()
 
     override fun visitFactory(callSite: FactoryCallSite, argument: RuntimeResolverContext): Any? =
         injectServiceProvider(callSite.factory(argument.scope), argument.scope)

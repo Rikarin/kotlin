@@ -1,7 +1,6 @@
 package net.rikarin.configuration
 
 import net.rikarin.configuration.implementation.DefaultConfigurationBuilder
-import net.rikarin.configuration.implementation.addInMemoryCollection
 import org.junit.jupiter.api.Test
 
 class MemoryConfigurationTest {

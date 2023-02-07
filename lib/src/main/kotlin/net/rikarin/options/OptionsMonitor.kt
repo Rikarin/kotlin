@@ -8,3 +8,6 @@ interface OptionsMonitor<out TOptions> {
     fun get(name: String?): TOptions
     fun onChange(listener: (TOptions, String?) -> Unit): Disposable
 }
+
+fun <TOptions> OptionsMonitor<TOptions>.onChange(listener: (TOptions) -> Unit): Disposable =
+    onChange { options, _ -> listener(options) }

@@ -1,12 +1,14 @@
 package net.rikarin.configuration.fileExtensions
 
 import net.rikarin.configuration.ConfigurationSource
+import net.rikarin.fileProviders.FileProvider
 import java.io.File
 
 abstract class FileConfigurationSource : ConfigurationSource {
     // we need to create FileProvider to be able to abstract usage of memory vs file sources
-    var file: File? = null
-//    public IFileProvider? FileProvider { get; set; }
+    var file: File? = null // TODO: remove this
+    var fileProvider: FileProvider? = null
+
 //    public Action<FileLoadExceptionContext>? OnLoadException { get; set; }
 
     var path: String? = null

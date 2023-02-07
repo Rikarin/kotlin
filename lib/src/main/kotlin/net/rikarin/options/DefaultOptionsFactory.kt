@@ -1,19 +1,25 @@
 package net.rikarin.options
 
-import kotlin.reflect.KClass
-import kotlin.reflect.full.createInstance
-import kotlin.reflect.full.createType
+import net.rikarin.createInstance
+import kotlin.reflect.KType
 
-class DefaultOptionsFactory<TOptions : Any> : OptionsFactory<TOptions> {
-    private val _type: KClass<TOptions>
+class DefaultOptionsFactory<TOptions : Any>(
+    private val self: KType,
+    setups: Iterable<ConfigureOptions<TOptions>>,
+    postConfigures: Iterable<PostConfigureOptions<TOptions>>,
+    validations: Iterable<ValidateOptions<TOptions>>
+) : OptionsFactory<TOptions> {
     private val _setups: List<ConfigureOptions<TOptions>>
     private val _postConfigures: List<PostConfigureOptions<TOptions>>
     private val _validations: List<ValidateOptions<TOptions>>
 
-    constructor(type: KClass<TOptions>, setups: Iterable<ConfigureOptions<TOptions>>, postConfigures: Iterable<PostConfigureOptions<TOptions>>) : this(type, setups, postConfigures,
-        listOf())
-    constructor(type: KClass<TOptions>, setups: Iterable<ConfigureOptions<TOptions>>, postConfigures: Iterable<PostConfigureOptions<TOptions>>, validations: Iterable<ValidateOptions<TOptions>>) {
-        _type = type
+    constructor(
+        type: KType,
+        setups: Iterable<ConfigureOptions<TOptions>>,
+        postConfigures: Iterable<PostConfigureOptions<TOptions>>
+    ) : this(type, setups, postConfigures, listOf())
+
+    init {
         _setups = setups.toList()
         _postConfigures = postConfigures.toList()
         _validations = validations.toList()
@@ -45,7 +51,7 @@ class DefaultOptionsFactory<TOptions : Any> : OptionsFactory<TOptions> {
             }
 
             if (failures.isNotEmpty()) {
-                throw OptionsValidationException(name, _type.createType(), failures)
+                throw OptionsValidationException(name, self, failures)
             }
         }
 
@@ -53,6 +59,7 @@ class DefaultOptionsFactory<TOptions : Any> : OptionsFactory<TOptions> {
     }
 
     protected fun createInstance(name: String): TOptions {
-        return _type.createInstance()
+        val type = self.arguments[0].type!!
+        return type.createInstance() as TOptions
     }
 }

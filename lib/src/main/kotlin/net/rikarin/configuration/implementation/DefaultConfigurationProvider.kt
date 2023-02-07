@@ -3,17 +3,18 @@ package net.rikarin.configuration.implementation
 import net.rikarin.configuration.ConfigurationPath
 import net.rikarin.configuration.ConfigurationProvider
 import net.rikarin.core.exchange
+import net.rikarin.primitives.ChangeToken
 import java.util.concurrent.atomic.AtomicReference
 
 abstract class DefaultConfigurationProvider : ConfigurationProvider {
     private val _reloadToken = AtomicReference(ConfigurationReloadToken())
 
-    protected val data = mutableMapOf<String, String?>()
+    protected val data = mutableMapOf<String, String?>() // TODO: ignore case
 
-    override val reloadtoken
+    override val reloadToken: ChangeToken
         get() = _reloadToken.get()
 
-    override fun getOrNull(key: String) = data.getOrDefault(key, null)
+    override fun get(key: String) = data[key]
 
     override fun set(key: String, value: String?) {
         data[key] = value
@@ -21,7 +22,6 @@ abstract class DefaultConfigurationProvider : ConfigurationProvider {
 
     override fun load() { }
 
-//    override fun getChildKeys(parentPath: String?): Iterable<String> {
     override fun getChildKeys(earlierKeys: Iterable<String>, parentPath: String?): Iterable<String> {
         val results = mutableListOf<String>()
 

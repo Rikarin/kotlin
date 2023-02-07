@@ -4,16 +4,24 @@ import net.rikarin.primitives.ChangeToken
 import net.rikarin.configuration.ConfigurationPath
 import net.rikarin.configuration.ConfigurationRoot
 import net.rikarin.configuration.ConfigurationSection
+import net.rikarin.configuration.getChildrenImplementation
 
 class DefaultConfigurationSection(private val root: ConfigurationRoot, path: String) : ConfigurationSection {
-    val _path: String
+    private var _key: String? = null
+    private val _path: String
 
     init {
         _path = path
     }
 
-    override val key
-        get() = ConfigurationPath.getSectionKey(path)
+    override val key: String
+        get() {
+            if (_key == null) {
+                _key = ConfigurationPath.getSectionKey(path)
+            }
+
+            return _key!!
+        }
 
     override val path
         get() = _path

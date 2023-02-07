@@ -1,6 +1,7 @@
 package net.rikarin.configuration.yaml
 
 import com.charleskorn.kaml.*
+import net.rikarin.InvalidOperationException
 import net.rikarin.configuration.ConfigurationPath
 import java.io.InputStream
 
@@ -22,7 +23,7 @@ internal class YamlConfigurationFileParser {
 
     private fun visitValue(path: String, value: String?) {
         if (_data.containsKey(path)) {
-            throw Exception("duplicate key found $path")
+            throw InvalidOperationException("duplicate key found $path")
         }
 
         _data[path] = value
@@ -55,7 +56,7 @@ internal class YamlConfigurationFileParser {
                 visitValue(currentPath, null)
             }
 
-            else -> throw Exception("unknown yaml node")
+            else -> throw InvalidOperationException("unknown yaml node")
         }
     }
 

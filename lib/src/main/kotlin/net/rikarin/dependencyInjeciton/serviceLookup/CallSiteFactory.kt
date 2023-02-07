@@ -57,7 +57,7 @@ internal class CallSiteFactory(
     }
 
     internal fun getCallSite(serviceDescriptor: ServiceDescriptor, callSiteChain: CallSiteChain): ServiceCallSite? {
-        val descriptor = _descriptorLookup.getOrDefault(serviceDescriptor.serviceType, null)
+        val descriptor = _descriptorLookup[serviceDescriptor.serviceType]
         if (descriptor != null) {
             return tryCreateExact(serviceDescriptor, serviceDescriptor.serviceType, callSiteChain, descriptor.getSlot(serviceDescriptor))
         }
@@ -82,7 +82,7 @@ internal class CallSiteFactory(
             tryCreateIterable(serviceType, callSiteChain)
     }
     private fun tryCreateExact(serviceType: KType, callSiteChain: CallSiteChain): ServiceCallSite? {
-        val descriptor = _descriptorLookup.getOrDefault(serviceType, null)
+        val descriptor = _descriptorLookup[serviceType]
         if (descriptor != null) {
             return tryCreateExact(descriptor.last, serviceType, callSiteChain, DEFAULT_SLOT)
         }
@@ -121,7 +121,7 @@ internal class CallSiteFactory(
     }
 
     private fun tryCreateOpenGeneric(serviceType: KType, callSiteChain: CallSiteChain): ServiceCallSite? {
-        val descriptor = _descriptorLookup.getOrDefault(serviceType.getGenericTypeDefinition(), null)
+        val descriptor = _descriptorLookup[serviceType.getGenericTypeDefinition()]
 
         if (serviceType.isConstructedGenericType && descriptor != null) {
             return tryCreateOpenGeneric(descriptor.last, serviceType, callSiteChain, DEFAULT_SLOT, true)
@@ -138,9 +138,9 @@ internal class CallSiteFactory(
         throwOnConstraintViolation: Boolean
     ): ServiceCallSite? {
         // TODO
-        if (serviceType.isConstructedGenericType) {
+        if (serviceType.isConstructedGenericType && serviceType.classifier == descriptor.serviceType.classifier) {
             val callSiteKey = ServiceCacheKey(serviceType, slot)
-            val serviceCallSite = _callSiteCache.getOrDefault(callSiteKey, null)
+            val serviceCallSite = _callSiteCache[callSiteKey]
             if (serviceCallSite != null) {
                 return serviceCallSite
             }
@@ -167,8 +167,65 @@ internal class CallSiteFactory(
     }
 
     private fun tryCreateIterable(serviceType: KType, callSiteChain: CallSiteChain): ServiceCallSite? {
-        // TODO: finish this
-        TODO()
+        val callSiteKey = ServiceCacheKey(serviceType, DEFAULT_SLOT)
+        val serviceCallSite = _callSiteCache[callSiteKey]
+        if (serviceCallSite != null) {
+            return serviceCallSite
+        }
+
+        try {
+            callSiteChain.add(serviceType)
+
+            // TODO: isconstructedGenericType
+            if (serviceType.classifier == Iterable::class) { // TODO: not sure about this
+                val itemType = serviceType.arguments[0].type!!
+                var cacheLocation = CallSiteResultCacheLocation.ROOT
+                var callSites = mutableListOf<ServiceCallSite>()
+
+                // constructed generic type
+                val descriptors = _descriptorLookup[itemType]
+                if (descriptors != null) {
+                    for (i in 0 until descriptors.size) {
+                        val descriptor = descriptors[i]
+                        val slot = descriptors.size - i - 1
+
+                        val callSite = tryCreateExact(descriptor, itemType, callSiteChain, slot)
+                        assert(callSite != null)
+
+                        cacheLocation = CallSiteResultCacheLocation.getCommonCacheLocation(cacheLocation, callSite!!.cache.location)
+                        callSites.add(callSite)
+                    }
+                } else {
+                    var slot = 0
+                    for (i in this.descriptors.size - 1 downTo 0) {
+                        val descriptor = this.descriptors[i]
+                        val callSite = tryCreateExact(descriptor, itemType, callSiteChain, slot) ?:
+                            tryCreateOpenGeneric(descriptor, itemType, callSiteChain, slot, false)
+
+                        if (callSite != null) {
+                            slot++
+
+                            cacheLocation = CallSiteResultCacheLocation.getCommonCacheLocation(cacheLocation, callSite.cache.location)
+                            callSites.add(callSite)
+                        }
+                    }
+
+                    callSites.reverse()
+                }
+
+                var resultCache = ResultCache.NONE
+                if (cacheLocation == CallSiteResultCacheLocation.SCOPE || cacheLocation == CallSiteResultCacheLocation.ROOT) {
+                    resultCache = ResultCache(cacheLocation, callSiteKey)
+                }
+
+                _callSiteCache[callSiteKey] = IterableCallSite(resultCache, itemType, callSites.toTypedArray())
+                return _callSiteCache[callSiteKey]
+            }
+
+            return null
+        } finally {
+            callSiteChain.remove(serviceType)
+        }
     }
 
     private fun createConstructorCallSite(
@@ -259,11 +316,16 @@ internal class CallSiteFactory(
         val projected = projectGenericClassArguments(implementationType)
 
         return parameters.map {
-            val parameterType = projected[it.type] ?: it.type //throw InvalidOperationException(PROJECTED_TYPE_NOT_FOUND.format(it.type))
+            val type = it.type
+            if (type == typeOf<KType>()) {
+                return@map ConstantCallSite(type, implementationType)
+            }
+
+            val parameterType = replaceGenericArguments(projected, type)
             var callSite = getCallSite(parameterType, callSiteChain)
 
             if (callSite == null && it.isOptional) {
-                callSite = ConstantCallSite(it.type, null) // TODO
+                callSite = ConstantCallSite(type, null) // TODO
             }
 
             if (callSite == null) {
@@ -276,6 +338,19 @@ internal class CallSiteFactory(
 
             callSite
         }.toTypedArray()
+    }
+
+    private fun replaceGenericArguments(projected: Map<KType, KType>, type: KType): KType {
+        if (type.arguments.isNotEmpty()) {
+            val args = mutableListOf<KType>()
+            for (argument in type.arguments) {
+                args.add(replaceGenericArguments(projected, argument.type!!))
+            }
+
+            return type.asClass().createType(args.map { KTypeProjection.invariant(it) })
+        }
+
+        return projected[type] ?: type
     }
 
     private fun projectGenericClassArguments(implementationType: KType): Map<KType, KType> {
@@ -317,8 +392,6 @@ internal class CallSiteFactory(
     private class ServiceDescriptorCacheItem {
         private var _item: ServiceDescriptor? = null
         private var _items: MutableList<ServiceDescriptor>? = null
-
-        // TODO: this[index]
 
         val last: ServiceDescriptor
             get() {
@@ -368,6 +441,18 @@ internal class CallSiteFactory(
             }
 
             return newCacheItem
+        }
+
+        operator fun get(index: Int): ServiceDescriptor {
+            if (index >= size) {
+                throw IllegalArgumentException("index is out of range")
+            }
+
+            if (index == 0) {
+                return _item!!
+            }
+
+            return _items!![index - 1]
         }
     }
 }

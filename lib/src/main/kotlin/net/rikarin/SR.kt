@@ -9,3 +9,5 @@ const val OPEN_GENERIC_SERVICE_REQUIRES_OPEN_GENERIC_IMPLEMENTATION = "Open gene
 const val DIRECT_SCOPED_RESOLVED_FROM_ROOT = "Cannot resolve %s service '%s' from root provider."
 const val SCOPED_RESOLVED_FROM_ROOT = "Cannot resolve '%s' from root provider because it requires %s service '%s'."
 const val SERVICE_COLLECTION_READ_ONLY = "The service collection cannot be modified because it is read-only."
+const val NO_SOURCES = "A configuration source is not registered. Please register one before setting a value."
+const val CIRCULAR_DEPENDENCY = "A circular dependency was detected for the service of type '%s'."

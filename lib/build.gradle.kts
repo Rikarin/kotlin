@@ -1,9 +1,6 @@
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.8.0"
-    id("org.jetbrains.dokka") version "1.7.20"
-
+    id("net.rikarin.library-conventions")
     kotlin("plugin.serialization") version "1.8.0"
-    `java-library`
 }
 
 base {
@@ -13,9 +10,6 @@ base {
 version = "0.0.1"
 group = "net.rikarin"
 
-repositories {
-    mavenCentral()
-}
 
 dependencies {
     // This dependency is exported to consumers, that is to say found on their compile classpath.
@@ -29,16 +23,4 @@ dependencies {
     implementation("com.charleskorn.kaml:kaml:0.49.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("io.reactivex.rxjava3:rxkotlin:3.0.1")
-}
-
-testing {
-    suites {
-        val test by getting(JvmTestSuite::class) {
-            useKotlinTest("1.8.0")
-
-            dependencies {
-                implementation("org.junit.jupiter:junit-jupiter-engine:5.9.1")
-            }
-        }
-    }
 }

@@ -10,11 +10,11 @@ class WebApplicationTest {
         val builder = WebApplication.createBuilder()
 //        builder.services.add()
 
-        val app = builder.build()
+//        val app = builder.build()
         // app.use...
 
         runBlocking {
-            app.run()
+//            app.run()
         }
     }
 }

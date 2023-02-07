@@ -2,6 +2,7 @@ package net.rikarin.http.features
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 class FeatureReferencesTest {
     private val collection = DefaultFeatureCollection()
@@ -37,7 +38,7 @@ class FeatureCollectionTest {
         val foo = collection.get<Foo>()
         val bar = collection.get<Bar>()
 
-        assertEquals(foo?.value, "oi")
-        assertEquals(bar, Bar())
+        assertEquals(foo.value, "oi")
+        assertNotEquals(bar, Bar())
     }
 }

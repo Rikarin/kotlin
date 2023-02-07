@@ -12,15 +12,15 @@ import kotlin.test.Test
 class Test {
     @Test
     fun testHttp() {
-        val listener = HttpListener()
+//        val listener = HttpListener()
 //        val server = ServerSocket(8080)
 
-        listener.start()
+//        listener.start()
 //        println("Server running on port ${server.localPort}")
 
-        while (true) {
-            val context = listener.getContext()
-            println("context $context")
+//        while (true) {
+//            val context = listener.getContext()
+//            println("context $context")
 
 //            val client = server.accept()
 //            println("Client connected : ${client.inetAddress.hostAddress}")
@@ -45,7 +45,6 @@ class Test {
 //                appendMessageBody(bodyLine);
 //                bodyLine = reader.readLine();
 //            }
-        }
-//        server.close()
+//        }
     }
 }

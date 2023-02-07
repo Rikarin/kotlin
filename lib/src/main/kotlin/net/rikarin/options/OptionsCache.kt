@@ -3,9 +3,16 @@ package net.rikarin.options
 import java.util.concurrent.ConcurrentHashMap
 
 class OptionsCache<TOptions : Any> : OptionsMonitorCache<TOptions> {
+    // TODO: this should be lazy
     private val _cache = ConcurrentHashMap<String, TOptions>(31)
 
     override fun getOrAdd(name: String?, createOptions: () -> TOptions): TOptions {
+        val n = name ?: Options.DEFAULT_NAME
+        val value = _cache.get(n)
+        if (value == null) {
+//            value = _cache.getOrPut(name, lazy {  })
+        }
+
         TODO("Not yet implemented")
     }
 

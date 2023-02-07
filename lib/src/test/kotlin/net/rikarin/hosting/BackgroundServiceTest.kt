@@ -13,7 +13,7 @@ class BackgroundServiceTest {
             service.start()
             println("service started")
 
-            delay(5000)
+            delay(500)
 
             println("stop requested")
             service.stop()
