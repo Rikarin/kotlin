@@ -16,7 +16,6 @@ abstract class FileConfigurationProvider(val source: FileConfigurationSource) : 
     private fun load(reload: Boolean) {
 
         // TODO: fix this
-        println("file ${source.file}")
         val stream = source.file?.inputStream()
         if (stream != null) {
             load(stream)

@@ -56,6 +56,8 @@ class ConfigurationManager : ConfigurationBuilder, ConfigurationRoot, Disposable
 
     override fun build(): ConfigurationRoot = this
 
+    internal fun getProvidersReference() = _providerManager.getReference()
+
     override fun dispose() {
         disposeRegistrations()
         _providerManager.dispose()

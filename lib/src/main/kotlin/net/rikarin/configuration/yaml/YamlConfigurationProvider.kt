@@ -9,7 +9,6 @@ class YamlConfigurationProvider(source: YamlConfigurationSource) : FileConfigura
 
 //        try {
             data.putAll(parser.parse(stream))
-        println("data $data")
 //        } catch (e: Throwable) { // YamlException
 //            throw new FormatException(Resources.FormatError_YamlParseError(e.Message), e);
 //        }

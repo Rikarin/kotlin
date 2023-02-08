@@ -1,5 +1,6 @@
 package net.rikarin.options
 
+import net.rikarin.configuration.BinderOptionsAction
 import net.rikarin.configuration.Configuration
 import net.rikarin.dependencyInjeciton.ServiceCollection
 import net.rikarin.dependencyInjeciton.addSingleton

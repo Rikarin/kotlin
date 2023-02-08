@@ -24,7 +24,7 @@ abstract class FileConfigurationSource : ConfigurationSource {
 
     fun resolveFileProvider() {
         if (file == null && !path.isNullOrEmpty()) {
-            println("file $file $path")
+            // TODO: fix this
             file = File(path!!)
         }
     }

@@ -18,6 +18,7 @@ Purpose of this library is to bring basic .NET implementation to the Kotlin
 - Http
 - Builder
 - DDD Implementation based on ABP
+- TypeDescriptor & TypeConverter
 
 
 ## TODO
@@ -25,3 +26,5 @@ Purpose of this library is to bring basic .NET implementation to the Kotlin
 - Setup CI/CD with publishing on Maven Central
 - Fix configuration file Providers
 - Fix ChangeToken disposable stuff
+- Finish Options binder
+- Finish Builders
