@@ -2,5 +2,5 @@ pluginManagement {
     includeBuild("build-logic")
 }
 
-rootProject.name = "foobar"
-include("lib", "test-app")
+rootProject.name = "Rikarin"
+include("core", "ddd", "test-app")

@@ -6,6 +6,7 @@ import net.rikarin.dependencyInjeciton.buildServiceProvider
 import net.rikarin.dependencyInjeciton.getRequiredService
 import net.rikarin.options.Options
 import net.rikarin.options.configure
+import net.rikarin.testApp.users.User
 
 fun main() {
     val builder = WebApplication.createBuilder()
@@ -22,6 +23,13 @@ fun main() {
     val specs = provider.getRequiredService<Options<Spec>>()
     println("specs ${specs.value.replicas} ${specs.value.foobar}")
 
+
+    val user = User()
+
+    // Not working, yet
+//    val specs2 = builder.configuration.getSection("spec").get<Spec>()
+
+
 //        val app = builder.build()
     // app.use...
 
@@ -32,7 +40,7 @@ fun main() {
 
 class Metadata {
     var name: String? = null
-    lateinit var namespace: String
+    var namespace: String? = null
 }
 
 class Spec {
