@@ -5,6 +5,8 @@
 
 Purpose of this library is to bring basic .NET implementation to the Kotlin
 
+The main ISSUE why continuation has stopped is because Kotlin doesn't support runtime types (type erasure)
+
 
 ## Modules
 
